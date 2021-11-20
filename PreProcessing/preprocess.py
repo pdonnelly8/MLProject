@@ -106,9 +106,15 @@ class Saver:
             pickle.dump(data, f)
 
     def _generate_save_path(self, file_path):
+        if 'Healthy' in file_path:
+            save_dir = self.feature_save_dir[0]
+        else:
+            save_dir = self.feature_save_dir[1]
         file_name = os.path.split(file_path)[1]
-        save_path = os.path.join(self.feature_save_dir, file_name + ".npy")
+        file_name = os.path.splitext(file_name)[0]
+        save_path = os.path.join(save_dir, file_name + ".npy")
         return save_path
+
 
 
 class PreprocessingPipeline:
@@ -176,13 +182,13 @@ class PreprocessingPipeline:
 if __name__ == "__main__":
     FRAME_SIZE = 512
     HOP_LENGTH = 256
-    DURATION = 0.74  # in seconds
+    DURATION = 4  # in seconds
     SAMPLE_RATE = 22050
     MONO = True
 
-    SPECTROGRAMS_SAVE_DIR = "D:\ProjectData\Spectrograms"
+    SPECTROGRAMS_SAVE_DIR = ["D:\ProjectData\Spectrograms\Healthy", "D:\ProjectData\Spectrograms\Pathological"]
     MIN_MAX_VALUES_SAVE_DIR = "D:\ProjectData"
-    FILES_DIR = "D:\AudioFIles\F\F01\Session1\wav_headMic"
+    FILES_DIR = ["D:\SaarbrueckenVoiceDatabase\Healthy\Vowels", "D:\SaarbrueckenVoiceDatabase\Pathological\Vowels"]
 
     # instantiate all objects
     loader = Loader(SAMPLE_RATE, DURATION, MONO)
@@ -198,4 +204,5 @@ if __name__ == "__main__":
     preprocessing_pipeline.normaliser = min_max_normaliser
     preprocessing_pipeline.saver = saver
 
-    preprocessing_pipeline.process(FILES_DIR)
+    for files in FILES_DIR:
+        preprocessing_pipeline.process(files)
