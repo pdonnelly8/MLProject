@@ -8,9 +8,36 @@ PreprocessingPipeline
 """
 import os
 import pickle
-
+from torch.utils.data import Dataset
+import pandas as pd
+import torchaudio
 import librosa
 import numpy as np
+
+
+class UrbanSoundDataset(Dataset):
+
+    def __init__(self, annotations_file, audio_dir):
+        self.annotations = pd.read_csv(annotations_file)
+        self.audio_dir = audio_dir
+
+    def __len__(self):
+        return len(self.annotations)
+
+    def __getitem__(self, index):
+        audio_sample_path = self._get_audio_sample_path(index)
+        label = self._get_audio_sample_label(index)
+        signal, sr = torchaudio.load(audio_sample_path)
+        return signal, label
+
+    def _get_audio_sample_path(self, index):
+        fold = f"fold{self.annotations.iloc[index, 5]}"
+        path = os.path.join(self.audio_dir, fold, self.annotations.iloc[
+            index, 0])
+        return path
+
+    def _get_audio_sample_label(self, index):
+        return self.annotations.iloc[index, 6]
 
 
 class Loader:
@@ -106,10 +133,11 @@ class Saver:
             pickle.dump(data, f)
 
     def _generate_save_path(self, file_path):
-        if 'Healthy' in file_path:
-            save_dir = self.feature_save_dir[0]
-        else:
-            save_dir = self.feature_save_dir[1]
+       # if 'Healthy' in file_path:
+       #     save_dir = self.feature_save_dir[0]
+       # else:
+       #     save_dir = self.feature_save_dir[1]
+        save_dir = self.feature_save_dir[0]
         file_name = os.path.split(file_path)[1]
         file_name = os.path.splitext(file_name)[0]
         save_path = os.path.join(save_dir, file_name + ".npy")
@@ -180,29 +208,36 @@ class PreprocessingPipeline:
         }
 
 if __name__ == "__main__":
-    FRAME_SIZE = 512
-    HOP_LENGTH = 256
-    DURATION = 4  # in seconds
-    SAMPLE_RATE = 22050
-    MONO = True
+        FRAME_SIZE = 512
+        HOP_LENGTH = 256
+        DURATION = 4  # in seconds
+        SAMPLE_RATE = 22050
+        MONO = True
 
-    SPECTROGRAMS_SAVE_DIR = ["D:\ProjectData\Spectrograms\Healthy", "D:\ProjectData\Spectrograms\Pathological"]
-    MIN_MAX_VALUES_SAVE_DIR = "D:\ProjectData"
-    FILES_DIR = ["D:\SaarbrueckenVoiceDatabase\Healthy\Vowels", "D:\SaarbrueckenVoiceDatabase\Pathological\Vowels"]
+        SPECTROGRAMS_SAVE_DIR = ["D:\ProjectData\Spectrograms\Healthy"]
+        MIN_MAX_VALUES_SAVE_DIR = "D:\ProjectData"
+        FILES_DIR = ["D:\SaarbrueckenVoiceDatabase\healthySplit"]
 
-    # instantiate all objects
-    loader = Loader(SAMPLE_RATE, DURATION, MONO)
-    padder = Padder()
-    log_spectrogram_extractor = LogSpectrogramExtractor(FRAME_SIZE, HOP_LENGTH)
-    min_max_normaliser = MinMaxNormaliser(0, 1)
-    saver = Saver(SPECTROGRAMS_SAVE_DIR, MIN_MAX_VALUES_SAVE_DIR)
+        # instantiate all objects
+        loader = Loader(SAMPLE_RATE, DURATION, MONO)
+        padder = Padder()
+        log_spectrogram_extractor = LogSpectrogramExtractor(FRAME_SIZE, HOP_LENGTH)
+        min_max_normaliser = MinMaxNormaliser(0, 1)
+        saver = Saver(SPECTROGRAMS_SAVE_DIR, MIN_MAX_VALUES_SAVE_DIR)
 
-    preprocessing_pipeline = PreprocessingPipeline()
-    preprocessing_pipeline.loader = loader
-    preprocessing_pipeline.padder = padder
-    preprocessing_pipeline.extractor = log_spectrogram_extractor
-    preprocessing_pipeline.normaliser = min_max_normaliser
-    preprocessing_pipeline.saver = saver
+        preprocessing_pipeline = PreprocessingPipeline()
+        preprocessing_pipeline.loader = loader
+        preprocessing_pipeline.padder = padder
+        preprocessing_pipeline.extractor = log_spectrogram_extractor
+        preprocessing_pipeline.normaliser = min_max_normaliser
+        preprocessing_pipeline.saver = saver
 
-    for files in FILES_DIR:
-        preprocessing_pipeline.process(files)
+        """
+        ANNOTATIONS_FILE = "/home/valerio/datasets/UrbanSound8K/metadata/UrbanSound8K.csv"
+        AUDIO_DIR = "/home/valerio/datasets/UrbanSound8K/audio"
+        usd = UrbanSoundDataset(ANNOTATIONS_FILE, AUDIO_DIR)
+        print(f"There are {len(usd)} samples in the dataset.")
+        signal, label = usd[0]
+        """
+        for files in FILES_DIR:
+            preprocessing_pipeline.process(files)
