@@ -1,4 +1,3 @@
-#TYPE Selected.System.IO.DirectoryInfo,
 FullName,Class
 AudioSamples\Healthy\100\100_Healthy_High.wav,Healthy
 AudioSamples\Healthy\100\100_Healthy_Low.wav,Healthy
