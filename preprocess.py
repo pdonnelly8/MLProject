@@ -188,7 +188,9 @@ if __name__ == "__main__":
         SAMPLE_RATE = 22050
         MONO = True
 
-        SPECTROGRAMS_SAVE_DIR = ["D:\ProjectData\Spectrograms\Healthy"]
+        CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+        SPECTROGRAMS_SAVE_DIR = [CURRENT_DIR + "\Spectrograms"]
+        print(SPECTROGRAMS_SAVE_DIR)
         MIN_MAX_VALUES_SAVE_DIR = "D:\ProjectData"
         FILES_DIR = ["D:\SaarbrueckenVoiceDatabase\healthySplit"]
 

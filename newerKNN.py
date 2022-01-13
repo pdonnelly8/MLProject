@@ -42,7 +42,7 @@ def get_audios(df):
 
 # Reads in dataset csv and retrieves the audio
 def get_samples():
-    df = pd.read_csv('newerdataset.csv')
+    df = pd.read_csv('dataset.csv')
     return get_audios(df), df['Class'].values
 
 # init function to run our training/testing
