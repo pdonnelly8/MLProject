@@ -210,9 +210,9 @@ train_ds = spectrogram_ds
 val_ds = preprocess_dataset(val_files)
 test_ds = preprocess_dataset(test_files)
 
-batch_size = 128
-train_ds = train_ds.batch(batch_size)
-val_ds = val_ds.batch(batch_size)
+
+train_ds = train_ds.batch(565)
+val_ds = val_ds.batch(121)
 
 train_ds = train_ds.cache().prefetch(AUTOTUNE)
 val_ds = val_ds.cache().prefetch(AUTOTUNE)
@@ -252,7 +252,7 @@ model.compile(
     metrics=['accuracy'],
 )
 
-EPOCHS = 100
+EPOCHS = 150
 history = model.fit(
     train_ds,
     validation_data=val_ds,
@@ -269,7 +269,7 @@ color_map[layers.MaxPooling2D]['fill'] = 'red'
 color_map[layers.Dense]['fill'] = 'green'
 color_map[layers.Flatten]['fill'] = 'teal'
 
-visualkeras.layered_view(model, legend=True, color_map=color_map).show()
+visualkeras.layered_view(model, legend=True, color_map=color_map, to_file='CNNArchitecture.png').show()
 
 metrics = history.history
 plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])

@@ -264,7 +264,7 @@ history = model.fit(
 )
 
 # visualkeras.layered_view(model, to_file='output.png').show() # write and show
-model.save("lstm.h5")
+# model.save("lstm.h5")
 metrics = history.history
 plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])
 plt.legend(['loss', 'val_loss'])
