@@ -8,10 +8,8 @@ import tensorflow as tf
 
 from tensorflow.keras import layers
 from tensorflow.keras import models
-import visualkeras
-from collections import defaultdict
-from PIL import ImageFont
-
+from tensorflow.keras.layers import Dense, Dropout, Embedding, LSTM, Bidirectional
+from torch import sigmoid
 # Set the seed value for experiment reproducibility.
 seed = 42
 tf.random.set_seed(seed)
@@ -24,7 +22,7 @@ np.random.seed(seed)
 DATASET_PATH = 'AudioSamples'
 data_dir = pathlib.Path(DATASET_PATH)
 
-classes = np.array(tf.io.gfile.listdir(str(data_dir)))
+classes = np.array(['_Healthy_High', '_Healthy_Low', '_Healthy_Mix', '_Healthy_Neutral', '_Pathological_High', '_Pathological_Low', '_Pathological_Mix', '_Pathological_Neutral'])
 classes = classes[classes != 'dataset.csv']
 print('Classes: ', classes)
 
@@ -66,7 +64,10 @@ def get_label(file_path):
       sep=os.path.sep)
   # Note: You'll use indexing here instead of tuple unpacking to enable this
   # to work in a TensorFlow graph.
-  return parts[-3]
+  file_label = tf.strings.regex_replace(parts[-1], '[0-9]+', '')
+  file_label = tf.strings.regex_replace(file_label, '.wav', '')
+  file_label = tf.strings.regex_replace(file_label, '/_', '/')
+  return file_label
 
 def get_waveform_and_label(file_path):
   label = get_label(file_path)
@@ -130,10 +131,6 @@ def get_spectrogram(waveform):
       equal_length, frame_length=255, frame_step=128)
   # Obtain the magnitude of the STFT.
   spectrogram = tf.abs(spectrogram)
-  # Add a `channels` dimension, so that the spectrogram can be used
-  # as image-like input data with convolution layers (which expect
-  # shape (`batch_size`, `height`, `width`, `channels`).
-  spectrogram = spectrogram[..., tf.newaxis]
   return spectrogram
 
 for waveform, label in waveform_ds.take(1):
@@ -193,7 +190,7 @@ for i, (spectrogram, label_id) in enumerate(spectrogram_ds.take(n)):
 plt.show()
 
 #########################################################
-# Build and Train CNN Model
+# Build and Train RNN Model
 #########################################################
 
 def preprocess_dataset(files):
@@ -202,15 +199,15 @@ def preprocess_dataset(files):
       map_func=get_waveform_and_label,
       num_parallel_calls=AUTOTUNE)
   output_ds = output_ds.map(
-      map_func=get_spectrogram_and_label_id,
-      num_parallel_calls=AUTOTUNE)
+    map_func=get_spectrogram_and_label_id,
+    num_parallel_calls=AUTOTUNE)
   return output_ds
 
 train_ds = spectrogram_ds
 val_ds = preprocess_dataset(val_files)
 test_ds = preprocess_dataset(test_files)
 
-batch_size = 128
+batch_size = 565
 train_ds = train_ds.batch(batch_size)
 val_ds = val_ds.batch(batch_size)
 
@@ -228,29 +225,36 @@ norm_layer = layers.Normalization()
 norm_layer.adapt(data=spectrogram_ds.map(map_func=lambda spec, label: spec))
 
 # Defining layers within Neural Network
-model = models.Sequential([
-    layers.Input(shape=input_shape),
-    # Downsample the input.
-    layers.Resizing(32, 32),
-    # Normalize.
-    norm_layer,
-    layers.Conv2D(32, 3, activation='relu'),
-    layers.Conv2D(64, 3, activation='relu'),
-    layers.MaxPooling2D(),
-    layers.Dropout(0.25),
-    layers.Flatten(),
-    layers.Dense(128, activation='sigmoid'),
-    layers.Dropout(0.5),
-    layers.Dense(num_labels, activation='sigmoid'),
-])
+model = models.Sequential()
 
+model.add(layers.Input(shape=input_shape))
+model.add(norm_layer)
+model.add(Bidirectional(LSTM(32, activation='relu', return_sequences=True)))
+model.add(Bidirectional(LSTM(64, activation='relu')))
+model.add(layers.Dropout(0.25))
+model.add(layers.Flatten())
+model.add(layers.Dense(128, activation='relu'))
+model.add(layers.Dropout(0.5))
+model.add(layers.Dense(num_labels, activation='sigmoid'))
+
+
+'''
+model.add(layers.Input(shape=input_shape))
+model.add(LSTM(128,activation='tanh', return_sequences=True))
+model.add(Dropout(0.2))
+model.add(Dense(128, activation='tanh'))
+model.add(Dense(64, activation='tanh'))
+model.add(Dropout(0.4))
+model.add(Dense(48, activation='tanh'))
+model.add(Dropout(0.4))
+model.add(Dense(24, activation='tanh'))
+model.add(Dropout(0.4))
+model.add(Dense(num_labels, activation='sigmoid'))
 model.summary()
-
-model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
-    loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    metrics=['accuracy'],
-)
+'''
+model.summary()
+optimiser = tf.keras.optimizers.Adam(learning_rate=0.01,clipvalue=0.5)
+model.compile(optimizer=optimiser,loss=tf.keras.losses.SparseCategoricalCrossentropy(),metrics=['acc'])
 
 EPOCHS = 100
 history = model.fit(
@@ -260,20 +264,9 @@ history = model.fit(
    # callbacks=tf.keras.callbacks.EarlyStopping(monitor='loss', patience=5),
 )
 
-font = ImageFont.truetype("arial.ttf", 32)
-color_map = defaultdict(dict)
-color_map[layers.Conv2D]['fill'] = 'orange'
-color_map[layers.ZeroPadding2D]['fill'] = 'gray'
-color_map[layers.Dropout]['fill'] = 'pink'
-color_map[layers.MaxPooling2D]['fill'] = 'red'
-color_map[layers.Dense]['fill'] = 'green'
-color_map[layers.Flatten]['fill'] = 'teal'
-
-visualkeras.layered_view(model, legend=True, color_map=color_map).show()
-
 metrics = history.history
-plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])
-plt.legend(['loss', 'val_loss'])
+plt.plot(history.epoch, metrics['loss'], metrics['val_loss'], metrics['acc'])
+plt.legend(['loss', 'val_loss', 'acc'])
 plt.show()
 
 #########################################################

@@ -6,12 +6,12 @@ import numpy as np
 import seaborn as sns
 import tensorflow as tf
 
-from tensorflow.keras import layers
 from tensorflow.keras import models
-import visualkeras
-from collections import defaultdict
-from PIL import ImageFont
+from tensorflow.keras import layers
+from tensorflow.keras.layers import Dense, Dropout, Flatten, LSTM, Bidirectional, Input
+from torch import sigmoid
 
+import visualkeras
 # Set the seed value for experiment reproducibility.
 seed = 42
 tf.random.set_seed(seed)
@@ -130,10 +130,6 @@ def get_spectrogram(waveform):
       equal_length, frame_length=255, frame_step=128)
   # Obtain the magnitude of the STFT.
   spectrogram = tf.abs(spectrogram)
-  # Add a `channels` dimension, so that the spectrogram can be used
-  # as image-like input data with convolution layers (which expect
-  # shape (`batch_size`, `height`, `width`, `channels`).
-  spectrogram = spectrogram[..., tf.newaxis]
   return spectrogram
 
 for waveform, label in waveform_ds.take(1):
@@ -193,7 +189,7 @@ for i, (spectrogram, label_id) in enumerate(spectrogram_ds.take(n)):
 plt.show()
 
 #########################################################
-# Build and Train CNN Model
+# Build and Train RNN Model
 #########################################################
 
 def preprocess_dataset(files):
@@ -202,17 +198,17 @@ def preprocess_dataset(files):
       map_func=get_waveform_and_label,
       num_parallel_calls=AUTOTUNE)
   output_ds = output_ds.map(
-      map_func=get_spectrogram_and_label_id,
-      num_parallel_calls=AUTOTUNE)
+    map_func=get_spectrogram_and_label_id,
+    num_parallel_calls=AUTOTUNE)
   return output_ds
 
 train_ds = spectrogram_ds
 val_ds = preprocess_dataset(val_files)
 test_ds = preprocess_dataset(test_files)
 
-batch_size = 128
-train_ds = train_ds.batch(batch_size)
-val_ds = val_ds.batch(batch_size)
+
+train_ds = train_ds.batch(565)
+val_ds = val_ds.batch(121)
 
 train_ds = train_ds.cache().prefetch(AUTOTUNE)
 val_ds = val_ds.cache().prefetch(AUTOTUNE)
@@ -228,31 +224,38 @@ norm_layer = layers.Normalization()
 norm_layer.adapt(data=spectrogram_ds.map(map_func=lambda spec, label: spec))
 
 # Defining layers within Neural Network
-model = models.Sequential([
-    layers.Input(shape=input_shape),
-    # Downsample the input.
-    layers.Resizing(32, 32),
-    # Normalize.
-    norm_layer,
-    layers.Conv2D(32, 3, activation='relu'),
-    layers.Conv2D(64, 3, activation='relu'),
-    layers.MaxPooling2D(),
-    layers.Dropout(0.25),
-    layers.Flatten(),
-    layers.Dense(128, activation='sigmoid'),
-    layers.Dropout(0.5),
-    layers.Dense(num_labels, activation='sigmoid'),
-])
+model = models.Sequential()
 
+model.add(Input(shape=input_shape))
+model.add(norm_layer)
+model.add(Bidirectional(LSTM(32, activation='tanh', return_sequences=True)))
+model.add(Bidirectional(LSTM(64, activation='tanh')))
+model.add(Dropout(0.25))
+model.add(Flatten())
+model.add(Dense(128, activation='tanh'))
+model.add(Dropout(0.5))
+model.add(Dense(num_labels, activation='sigmoid'))
+
+
+'''
+model.add(layers.Input(shape=input_shape))
+model.add(LSTM(128,activation='tanh', return_sequences=True))
+model.add(Dropout(0.2))
+model.add(Dense(128, activation='tanh'))
+model.add(Dense(64, activation='tanh'))
+model.add(Dropout(0.4))
+model.add(Dense(48, activation='tanh'))
+model.add(Dropout(0.4))
+model.add(Dense(24, activation='tanh'))
+model.add(Dropout(0.4))
+model.add(Dense(num_labels, activation='sigmoid'))
 model.summary()
+'''
+model.summary()
+optimiser = tf.keras.optimizers.Adam(learning_rate=0.0001,clipvalue=0.5)
+model.compile(optimizer=optimiser,loss=tf.keras.losses.SparseCategoricalCrossentropy(),metrics=['acc'])
 
-model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
-    loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    metrics=['accuracy'],
-)
-
-EPOCHS = 100
+EPOCHS = 150
 history = model.fit(
     train_ds,
     validation_data=val_ds,
@@ -260,20 +263,15 @@ history = model.fit(
    # callbacks=tf.keras.callbacks.EarlyStopping(monitor='loss', patience=5),
 )
 
-font = ImageFont.truetype("arial.ttf", 32)
-color_map = defaultdict(dict)
-color_map[layers.Conv2D]['fill'] = 'orange'
-color_map[layers.ZeroPadding2D]['fill'] = 'gray'
-color_map[layers.Dropout]['fill'] = 'pink'
-color_map[layers.MaxPooling2D]['fill'] = 'red'
-color_map[layers.Dense]['fill'] = 'green'
-color_map[layers.Flatten]['fill'] = 'teal'
-
-visualkeras.layered_view(model, legend=True, color_map=color_map).show()
-
+# visualkeras.layered_view(model, to_file='output.png').show() # write and show
+model.save("lstm.h5")
 metrics = history.history
 plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])
 plt.legend(['loss', 'val_loss'])
+plt.show()
+
+plt.plot(history.epoch, metrics['acc'], metrics['val_acc'])
+plt.legend(['acc', 'val_acc'])
 plt.show()
 
 #########################################################
