@@ -1,3 +1,6 @@
 AudioSamples/ filter=lfs diff=lfs merge=lfs -text
 AudioSamples filter=lfs diff=lfs merge=lfs -text
 AudioSamples/Pathological/ filter=lfs diff=lfs merge=lfs -text
+Machine_Learning/ filter=lfs diff=lfs merge=lfs -text
+flaskServer/ filter=lfs diff=lfs merge=lfs -text
+stroke-app/ filter=lfs diff=lfs merge=lfs -text

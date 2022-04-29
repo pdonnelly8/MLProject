@@ -6,12 +6,9 @@ import numpy as np
 import seaborn as sns
 import tensorflow as tf
 
-from tensorflow.keras import models
 from tensorflow.keras import layers
-from tensorflow.keras.layers import Dense, Dropout, Flatten, LSTM, Bidirectional, Input
-from torch import sigmoid
-
-import visualkeras
+from tensorflow.keras import models
+from tensorflow.keras.layers import Dense, Dropout, Embedding, LSTM, Bidirectional
 # Set the seed value for experiment reproducibility.
 seed = 42
 tf.random.set_seed(seed)
@@ -24,7 +21,7 @@ np.random.seed(seed)
 DATASET_PATH = 'AudioSamples'
 data_dir = pathlib.Path(DATASET_PATH)
 
-classes = np.array(tf.io.gfile.listdir(str(data_dir)))
+classes = np.array(['_Healthy_High', '_Healthy_Low', '_Healthy_Mix', '_Healthy_Neutral', '_Pathological_High', '_Pathological_Low', '_Pathological_Mix', '_Pathological_Neutral'])
 classes = classes[classes != 'dataset.csv']
 print('Classes: ', classes)
 
@@ -66,7 +63,10 @@ def get_label(file_path):
       sep=os.path.sep)
   # Note: You'll use indexing here instead of tuple unpacking to enable this
   # to work in a TensorFlow graph.
-  return parts[-3]
+  file_label = tf.strings.regex_replace(parts[-1], '[0-9]+', '')
+  file_label = tf.strings.regex_replace(file_label, '.wav', '')
+  file_label = tf.strings.regex_replace(file_label, '/_', '/')
+  return file_label
 
 def get_waveform_and_label(file_path):
   label = get_label(file_path)
@@ -206,9 +206,9 @@ train_ds = spectrogram_ds
 val_ds = preprocess_dataset(val_files)
 test_ds = preprocess_dataset(test_files)
 
-
-train_ds = train_ds.batch(565)
-val_ds = val_ds.batch(121)
+batch_size = 565
+train_ds = train_ds.batch(batch_size)
+val_ds = val_ds.batch(batch_size)
 
 train_ds = train_ds.cache().prefetch(AUTOTUNE)
 val_ds = val_ds.cache().prefetch(AUTOTUNE)
@@ -226,15 +226,15 @@ norm_layer.adapt(data=spectrogram_ds.map(map_func=lambda spec, label: spec))
 # Defining layers within Neural Network
 model = models.Sequential()
 
-model.add(Input(shape=input_shape))
+model.add(layers.Input(shape=input_shape))
 model.add(norm_layer)
-model.add(Bidirectional(LSTM(32, activation='tanh', return_sequences=True)))
+model.add(Bidirectional(LSTM(128, activation='tanh', return_sequences=True)))
 model.add(Bidirectional(LSTM(64, activation='tanh')))
-model.add(Dropout(0.25))
-model.add(Flatten())
-model.add(Dense(128, activation='tanh'))
-model.add(Dropout(0.5))
-model.add(Dense(num_labels, activation='sigmoid'))
+model.add(layers.Dropout(0.25))
+model.add(layers.Flatten())
+model.add(layers.Dense(32, activation='tanh'))
+model.add(layers.Dropout(0.5))
+model.add(layers.Dense(num_labels, activation='sigmoid'))
 
 
 '''
@@ -260,18 +260,12 @@ history = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=EPOCHS,
-   # callbacks=tf.keras.callbacks.EarlyStopping(monitor='loss', patience=5),
+    callbacks=tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10),
 )
 
-# visualkeras.layered_view(model, to_file='output.png').show() # write and show
-# model.save("lstm.h5")
 metrics = history.history
-plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])
-plt.legend(['loss', 'val_loss'])
-plt.show()
-
-plt.plot(history.epoch, metrics['acc'], metrics['val_acc'])
-plt.legend(['acc', 'val_acc'])
+plt.plot(history.epoch, metrics['loss'], metrics['val_loss'], metrics['acc'])
+plt.legend(['loss', 'val_loss', 'acc'])
 plt.show()
 
 #########################################################

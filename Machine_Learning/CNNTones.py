@@ -5,12 +5,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import tensorflow as tf
+#import tensorflow_addons as tfa
 
 from tensorflow.keras import layers
 from tensorflow.keras import models
-import visualkeras
-from collections import defaultdict
-from PIL import ImageFont
 
 # Set the seed value for experiment reproducibility.
 seed = 42
@@ -24,7 +22,7 @@ np.random.seed(seed)
 DATASET_PATH = 'AudioSamples'
 data_dir = pathlib.Path(DATASET_PATH)
 
-classes = np.array(tf.io.gfile.listdir(str(data_dir)))
+classes = np.array(['_Healthy_High', '_Healthy_Low', '_Healthy_Mix', '_Healthy_Neutral', '_Pathological_High', '_Pathological_Low', '_Pathological_Mix', '_Pathological_Neutral'])
 classes = classes[classes != 'dataset.csv']
 print('Classes: ', classes)
 
@@ -66,7 +64,10 @@ def get_label(file_path):
       sep=os.path.sep)
   # Note: You'll use indexing here instead of tuple unpacking to enable this
   # to work in a TensorFlow graph.
-  return parts[-3]
+  file_label = tf.strings.regex_replace(parts[-1], '[0-9]+', '')
+  file_label = tf.strings.regex_replace(file_label, '.wav', '')
+  file_label = tf.strings.regex_replace(file_label, '/_', '/')
+  return file_label
 
 def get_waveform_and_label(file_path):
   label = get_label(file_path)
@@ -99,8 +100,6 @@ for i, (audio, label) in enumerate(waveform_ds.take(n)):
   ax.set_title(label)
 
 plt.show()
-
-
 
 #########################################################
 # Convert Waveforms to Spectrograms
@@ -210,7 +209,7 @@ train_ds = spectrogram_ds
 val_ds = preprocess_dataset(val_files)
 test_ds = preprocess_dataset(test_files)
 
-
+#batch_size = 128
 train_ds = train_ds.batch(565)
 val_ds = val_ds.batch(121)
 
@@ -241,7 +240,7 @@ model = models.Sequential([
     layers.Flatten(),
     layers.Dense(128, activation='sigmoid'),
     layers.Dropout(0.5),
-    layers.Dense(num_labels, activation='sigmoid'),
+    layers.Dense(num_labels),
 ])
 
 model.summary()
@@ -252,24 +251,13 @@ model.compile(
     metrics=['accuracy'],
 )
 
-EPOCHS = 150
+EPOCHS = 300
 history = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=EPOCHS,
-   # callbacks=tf.keras.callbacks.EarlyStopping(monitor='loss', patience=5),
+   callbacks=tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10),
 )
-
-font = ImageFont.truetype("arial.ttf", 32)
-color_map = defaultdict(dict)
-color_map[layers.Conv2D]['fill'] = 'orange'
-color_map[layers.ZeroPadding2D]['fill'] = 'gray'
-color_map[layers.Dropout]['fill'] = 'pink'
-color_map[layers.MaxPooling2D]['fill'] = 'red'
-color_map[layers.Dense]['fill'] = 'green'
-color_map[layers.Flatten]['fill'] = 'teal'
-
-visualkeras.layered_view(model, legend=True, color_map=color_map, to_file='CNNArchitecture.png').show()
 
 metrics = history.history
 plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])
@@ -308,10 +296,10 @@ plt.ylabel('Groundtruth')
 plt.show()
 
 #Measuring Type I and Type II errors
-truePositives=confusion_mtx[0][0].numpy()
-falseNegatives=confusion_mtx[0][1].numpy()
+truePositives=confusion_mtx[0][0].numpy() + confusion_mtx[1][1].numpy() + confusion_mtx[2][2].numpy() + confusion_mtx[3][3].numpy()
+falseNegatives=confusion_mtx[0][4].numpy() + confusion_mtx[0][5].numpy() + confusion_mtx[0][6].numpy() + confusion_mtx[0][7].numpy() + confusion_mtx[1][4].numpy() + confusion_mtx[1][5].numpy() + confusion_mtx[1][6].numpy() + confusion_mtx[1][7].numpy() + confusion_mtx[2][4].numpy() + confusion_mtx[2][5].numpy() + confusion_mtx[2][6].numpy() + confusion_mtx[2][7].numpy() + confusion_mtx[3][4].numpy() + confusion_mtx[3][5].numpy() + confusion_mtx[3][6].numpy() + confusion_mtx[3][7].numpy() + confusion_mtx[0][1].numpy() + confusion_mtx[0][2].numpy() + confusion_mtx[0][3].numpy() 
 falsePositives=confusion_mtx[1][0].numpy()
-trueNegatives=confusion_mtx[1][1].numpy()
+trueNegatives=confusion_mtx[4][4].numpy() + confusion_mtx[5][5].numpy() + confusion_mtx[6][6].numpy() + confusion_mtx[7][7].numpy()
 
 errorRate=(falseNegatives+falsePositives)/len(y_true)
 recall=truePositives/(truePositives+falseNegatives)
