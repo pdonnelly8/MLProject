@@ -1,0 +1,78 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`renders correctly 1`] = `
+<View
+  style={
+    Object {
+      "alignItems": "center",
+      "backgroundColor": "#fff",
+      "flex": 1,
+      "justifyContent": "center",
+    }
+  }
+>
+  <Text
+    style={
+      Object {
+        "alignContent": "stretch",
+        "fontSize": 35,
+        "fontWeight": "bold",
+      }
+    }
+  >
+    Stroke Detection App
+  </Text>
+  <View
+    accessible={true}
+    collapsable={false}
+    focusable={true}
+    onBlur={[Function]}
+    onClick={[Function]}
+    onFocus={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      Object {
+        "alignItems": "center",
+        "backgroundColor": "black",
+        "borderRadius": 4,
+        "elevation": 3,
+        "justifyContent": "center",
+        "paddingHorizontal": 32,
+        "paddingVertical": 12,
+      }
+    }
+  >
+    <Text
+      style={
+        Object {
+          "color": "white",
+          "fontSize": 16,
+          "fontWeight": "bold",
+          "letterSpacing": 0.25,
+          "lineHeight": 21,
+        }
+      }
+    >
+      Start Recording
+    </Text>
+  </View>
+  <Text
+    style={
+      Object {
+        "color": "black",
+        "fontSize": 16,
+        "fontWeight": "bold",
+        "letterSpacing": 0.25,
+        "lineHeight": 21,
+      }
+    }
+  >
+    
+  </Text>
+</View>
+`;
