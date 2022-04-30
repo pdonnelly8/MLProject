@@ -10,7 +10,7 @@ In this directory there are 4 main files:
 
 ## Running The Flask Server 
 
-To run the server, the user must have Python 3.9 or greater installed.
+To run the server, the user must have Python 3.9 or greater installed. You can find the latest downloads [here](https://www.python.org/downloads/).
 
 Steps to run are as follows:
 1. Move to the root directory of the repository. If in the flaskServer directory use the command `cd ..` to move back to the root.

@@ -9,7 +9,7 @@ In this directory there are:
 
 ## Running the ML Pipelines
 
-To run the pipelines, the user must have Python 3.9 or greater installed.
+To run the pipelines, the user must have Python 3.9 or greater installed. You can find the latest downloads [here](https://www.python.org/downloads/).
 
 Steps to run are as follows: 
 1. Move to the root directory of the repository. If in the Machine_Learning directory use the command `cd ..` to move back to the root.
