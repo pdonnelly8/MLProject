@@ -22,5 +22,8 @@ Steps to follow to run the application are as follows:
 
 4. The app is now being served on the URL specified, similar to `exp://192.168.0.32:19000` shown above
 5. To connect your phone to the app, download the [Expo](https://expo.dev/client) application on your relevant app store (Play Store for Android, App Store for iOS), and scan the QR code provided. This should then take you to the application
+<div style="width:250px ; height:250px">
 
-![Image](assets/ServedApplication.jpg "Application on Android")
+![Image](assets/ServedApplication.jpg "Application being served")
+
+<div>
