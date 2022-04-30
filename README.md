@@ -14,3 +14,11 @@ This dataset is appropriate for this use case as it holds samples of both health
 
  A drawback of the Saarbruecken database is that a proportion of the pathological samples have very similar characteristics to that of the healthy audio, in that it was very hard to tell from listening to the speech sample that the subject had a speech disorder. It therefore became necessary to gather pathological audio samples that could be discernible to the ear as “unhealthy”. The sample size of full .wav audio files was shortened to a total of 202, with an even split of healthy and pathological data amongst them. 
  However, because of the nature of the audio samples, it became possible to apply a technique known as Data Augmentation, defined as “a suite of techniques that enhance the size and quality of training datasets such that Deep Learning models can be built using them”. Since audio recordings in the Saarbruecken database had 4 different pitches of vowel sounds per audio sample, it became possible to extract all different variations of vowel sounds so that for each full audio sample given, 4 audio samples could be generated. Through editing these audio files a total of 808 samples of audio were gathered. The directory hierarchy of these audio samples is saved as “AudioSamples/'AudioClass'/'PatientID'/'PatientID'\_'AudioClass'\_'SamplePitch'.wav” 
+
+ ## Traversing the Repository
+
+ For each aspect of the project there is their own directory. There are also READMEs within each directory explaining how to run each aspect.
+
+ - To run the machine learning scripts and to see the results of these experiments, go to 'Machine_Learning'
+ - To run the Front-End client and the testing measures for it, go to 'stroke-app'
+ - To run the Back-End server that interacts with the Front-End client, go to 'flaskServer'
